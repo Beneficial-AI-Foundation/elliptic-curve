@@ -133,8 +133,9 @@ private theorem add_spec (hP : P.OnCurve) (hQ : Q.OnCurve) :
     (P.add Q).OnCurve ∧ (P.add Q).toPoint = P.toPoint + Q.toPoint := by
   refine Extended.onCurve_and_toPoint_eq_add (mul_ne_zero hP.1 hQ.1) P.toPoint Q.toPoint
     ?_ ?_ ?_ ?_ <;>
-  · simp only [add, X_eq_toPoint_x_mul_Z hP, Y_eq_toPoint_y_mul_Z hP, T_eq_toPoint_mul_Z hP,
-      X_eq_toPoint_x_mul_Z hQ, Y_eq_toPoint_y_mul_Z hQ, T_eq_toPoint_mul_Z hQ, addDen₁, addDen₂]
+  · simp only [add, X_eq_toPoint_x_mul_Z hP, Y_eq_toPoint_y_mul_Z hP,
+      T_eq_toPoint_x_mul_y_mul_Z hP, X_eq_toPoint_x_mul_Z hQ, Y_eq_toPoint_y_mul_Z hQ,
+      T_eq_toPoint_x_mul_y_mul_Z hQ, addDen₁, addDen₂]
     ring
 
 /-- "add-2008-hwcd" sends points on the curve to points on the curve. -/

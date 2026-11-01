@@ -6,6 +6,7 @@ Authors: BAIF
 module
 public import EllipticCurve.Montgomery.Ladder.Defs
 public import EllipticCurve.Montgomery.XOnly.Lemmas
+public import Mathlib.Data.Nat.Digits.Defs
 import all EllipticCurve.Montgomery.Ladder.Defs
 import EllipticCurve.Montgomery.Lemmas
 import Mathlib.NumberTheory.LegendreSymbol.QuadraticChar.Basic
@@ -29,8 +30,8 @@ pair `cswap swap (x_2 : z_2) (x_3 : z_3)` represents `(m • Q, (m + 1) • Q)` 
 `m = k / 2 ^ t` (stated bottom-up as `m ↦ m · 2 ^ t + k % 2 ^ t`, `ladderLoop_inv`).
 
 Ported from curve25519-dalek's Lean verification
-(`Curve25519/Models/Montgomery/Ladder/Lemmas.lean`, commit `d2e92e7`), unchanged apart from
-module names and documentation. -/
+(`Curve25519/Models/Montgomery/Ladder/Lemmas.lean`, commit `d2e92e7`), with
+`ladderBits_eq_xMul` stated through `Nat.ofDigits`. -/
 
 public section
 
@@ -392,10 +393,6 @@ theorem ladder_zero (a24 : F) (bits k : ℕ) : ladder a24 bits k 0 = 0 := by
   · exact mul_eq_zero.mp h₀
   · exact mul_eq_zero.mp h₁
 
-end XZ
-
-namespace XZ
-
 /-- The ladder loop over the bits `t - 1, …, 0` of `k` is the loop body folded over those bits. -/
 theorem ladderLoop_eq_foldl (a24 x₁ : F) (k t : ℕ) (s : LadderState F) :
     ladderLoop a24 x₁ k t s =
@@ -429,6 +426,15 @@ private theorem ofBitsBE_lt (bs : List Bool) : ofBitsBE bs < 2 ^ bs.length := by
     rw [ofBitsBE_append, List.length_append, List.length_singleton, pow_succ]
     have := Bool.toNat_le b
     omega
+
+private theorem ofBitsBE_eq_ofDigits (bs : List Bool) :
+    ofBitsBE bs = Nat.ofDigits 2 (bs.reverse.map Bool.toNat) := by
+  induction bs using List.reverseRecOn with
+  | nil => rfl
+  | append_singleton bs b ih =>
+    rw [ofBitsBE_append, List.reverse_append, List.reverse_singleton, List.singleton_append,
+      List.map_cons, Nat.ofDigits_cons, ih]
+    ring
 
 private theorem testBits_ofBitsBE (bs : List Bool) :
     (List.range bs.length).reverse.map (ofBitsBE bs).testBit = bs := by
@@ -520,13 +526,13 @@ theorem ladder_eq_xMul [Finite F] {c : F} (hc : ¬ IsSquare c) {bits k : ℕ} (h
     (u : F) : M.ladder bits k u = M.xMul c k u :=
   ladder_eq_xMul_of_exists hc hk (exists_point_u_or_twist hc u)
 
-/-- Over a finite field, the ladder over a bit sequence `bs` is `xMul` for a non-square `c` at
-the integer `n` with the big-endian bits `bs`: `u ↦ u(n • Q)` on the curve and on the twist. -/
+/-- Over a finite field, the ladder over a bit sequence `bs`, most significant first, is `xMul`
+for a non-square `c` at the integer `n` with these bits, `n = Nat.ofDigits 2 bs.reverse`: it maps
+`u(Q)` to `u(n • Q)` on the curve and on the twist. -/
 theorem ladderBits_eq_xMul [Finite F] {c : F} (hc : ¬ IsSquare c) (bs : List Bool) (u : F) :
-    ∃ n < 2 ^ bs.length, (List.range bs.length).reverse.map n.testBit = bs ∧
-      M.ladderBits bs u = M.xMul c n u :=
-  ⟨ofBitsBE bs, ofBitsBE_lt bs, testBits_ofBitsBE bs, by
-    rw [ladderBits, XZ.ladderBits_eq_ladder, ← ladder, ladder_eq_xMul hc (ofBitsBE_lt bs)]⟩
+    M.ladderBits bs u = M.xMul c (Nat.ofDigits 2 (bs.reverse.map Bool.toNat)) u := by
+  rw [← ofBitsBE_eq_ofDigits, ladderBits, XZ.ladderBits_eq_ladder, ← ladder,
+    ladder_eq_xMul hc (ofBitsBE_lt bs)]
 
 end LadderXMul
 

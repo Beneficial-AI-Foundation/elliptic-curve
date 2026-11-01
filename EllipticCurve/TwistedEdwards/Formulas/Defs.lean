@@ -23,8 +23,8 @@ proves other formulas built on these coordinates.
 
 Ported from curve25519-dalek's Lean verification
 (`Curve25519/Models/TwistedEdwards/Formulas/Defs.lean`, commit `d2e92e7`), without the mixed
-additions with Niels points, and with `Projective.double` generalised from `a = -1` to every `a`
-(at `a = -1` it is curve25519-dalek's `ProjectivePoint::double`). -/
+additions with Niels points, and with `Projective.double` generalised from `a = -1` to every
+`a`. -/
 
 public section
 
@@ -80,7 +80,7 @@ the fuel, so that kernel `decide` can evaluate it. -/
       if n % 2 = 0 then Q.double else Q.double.add P
 
 /-- Scalar multiplication `n • P` in extended coordinates by double-and-add on `add`, without
-inversion: the certificate engine for constants (`toPoint_nsmul`). -/
+inversion, so that the kernel can evaluate it on constants (`toPoint_nsmul`). -/
 @[expose] def nsmul (n : ℕ) (P : E.Extended) : E.Extended :=
   nsmulAux P n n
 

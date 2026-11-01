@@ -135,4 +135,18 @@ example : ∀ P ∈ pts, (toExt P).ProjEq ⟨2 * P.1, 2 * P.2, 2, 4 * P.1 * P.2�
     ((toExt P).ProjEq (toExt (-P.1, P.2)) ↔ P.1 = 0) := by
   decide +kernel
 
+/-- Negation, the conversions to completed coordinates and completed projective equality, decided:
+the negations represent `(-x, y)`, and every conversion of `(x : y : 1 : x y)` represents
+`(x, y)`. -/
+example : ∀ P ∈ pts,
+    ofExt (toExt P).neg = (-P.1, P.2) ∧
+    (⟨P.1, P.2, 1⟩ : E.Projective).neg.OnCurve ∧
+    ofCompleted (⟨P.1, P.2, 1, 1⟩ : E.Completed).neg = (-P.1, P.2) ∧
+    (toExt P).toCompleted.OnCurve ∧ ofCompleted (toExt P).toCompleted = P ∧
+    (toExt P).toProjective.toCompleted.OnCurve ∧
+    ofCompleted (toExt P).toProjective.toCompleted = P ∧
+    (toExt P).toCompleted.ProjEq ⟨3 * P.1, 5 * P.2, 3, 5⟩ ∧
+    (TwistedEdwardsModel.Completed.identity : E.Completed).OnCurve := by
+  decide +kernel
+
 end CoordTests

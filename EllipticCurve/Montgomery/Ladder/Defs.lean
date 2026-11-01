@@ -26,8 +26,8 @@ to evaluate the ladder by `decide`, pass the constant `a24` itself to `XZ.ladder
 computable.
 
 Ported from curve25519-dalek's Lean verification
-(`Curve25519/Models/Montgomery/Ladder/Defs.lean`, commit `d2e92e7`), unchanged apart from
-module names and documentation. -/
+(`Curve25519/Models/Montgomery/Ladder/Defs.lean`, commit `d2e92e7`), with `@[ext]` and
+`DecidableEq` on `XZ`. -/
 
 public section
 
@@ -41,14 +41,15 @@ variable {F : Type u} [Field F] (M : MontgomeryModel F)
 
 /-- A projective x-only point `(U : W)`: the `u`-coordinate `U / W`, with `W = 0` for the
 point at infinity. -/
-structure XZ (F : Type u) where
+@[ext] structure XZ (F : Type u) where
   /-- The numerator. -/
   U : F
   /-- The denominator; `0` at infinity. -/
   W : F
+  deriving DecidableEq
 
-/-- The ladder constant `a24 = (A - 2) / 4` of RFC 7748 (`121665` for curve25519, where
-`A = 486662`). -/
+/-- The ladder constant `a24 = (A - 2) / 4` of RFC 7748 (`121665` for Curve25519 and `39081` for
+Curve448). -/
 @[expose] def a24 : F := (M.A - 2) / 4
 
 namespace XZ

@@ -19,20 +19,27 @@ arithmetic (Hisil–Wong–Carter–Dawson, *Twisted Edwards curves revisited*, 
 * `E.Projective`: `(X : Y : Z)` with `x = X / Z`, `y = Y / Z`;
 * `E.Completed`: `((X : Z), (Y : T)) ∈ ℙ¹ × ℙ¹` with `x = X / Z`, `y = Y / T`.
 
-Each is a plain structure of field elements, with an exposed validity predicate `OnCurve`
-(stated with the affine point, and restated without division by `onCurve_iff_homogeneous`, through
-which it is decided), a total hidden `toPoint` into `E.Point` (the affine point when `OnCurve`,
-`0` otherwise; characterised by `toPoint_x`, `toPoint_y`, `toPoint_of_not_onCurve`), and for the
-two projective systems the exposed, decidable projective equality `ProjEq`, with
-`projEq_iff_toPoint_eq`. The conversions between the systems and from affine points, the
-identities and the negations are exposed formulas; their `onCurve_*` and `toPoint_*` lemmas are in
-`EllipticCurve.TwistedEdwards.Coords.Lemmas`. The group operations in coordinates are in
-`EllipticCurve.TwistedEdwards.Formulas.*`. The names in parentheses are those of
-curve25519-dalek's `curve_models.rs`.
+Each is a plain structure of field elements, with
+
+* an exposed validity predicate `OnCurve`, stated with the affine point, restated without division
+  by `onCurve_iff_homogeneous`, and decided through that form;
+* a total hidden `toPoint` into `E.Point`: the affine point when `OnCurve`, and `(0, 1)` otherwise
+  (the neutral element `0` when `E` is complete); characterised by `toPoint_x`, `toPoint_y`,
+  `toPoint_of_not_onCurve`, for any model;
+* the exposed, decidable projective equality `ProjEq`, with `projEq_iff_toPoint_eq`;
+* the exposed identity `identity` and negation `neg`, the conversions `toExtended`,
+  `toProjective`, `toCompleted` between the systems, and those from affine points
+  (`Point.toExtended`, `Point.toProjective`, `Point.toCompleted`).
+
+Their `onCurve_*` and `toPoint_*` lemmas are in `EllipticCurve.TwistedEdwards.Coords.Lemmas`. The
+group operations in coordinates are in `EllipticCurve.TwistedEdwards.Formulas.*`.
 
 Ported from curve25519-dalek's Lean verification
 (`Curve25519/Models/TwistedEdwards/Coords/Defs.lean`, commit `d2e92e7`), without the Niels
-coordinate systems, and with `OnCurve` decided without division. -/
+coordinate systems; `OnCurve` is decided without division, `toPoint` no longer needs a complete
+model, and the operations missing there (projective negation, the identity, negation and
+projective equality of completed coordinates, the conversions to completed coordinates and from
+affine points) are added. -/
 
 public section
 
@@ -41,10 +48,6 @@ universe u
 namespace TwistedEdwardsModel
 
 variable {F : Type u} [Field F] (E : TwistedEdwardsModel F)
-
-/-- The equation of a model is decidable in a field with decidable equality. -/
-instance instDecidableEquation [DecidableEq F] (x y : F) : Decidable (E.Equation x y) :=
-  inferInstanceAs (Decidable (E.a * x ^ 2 + y ^ 2 = 1 + E.d * x ^ 2 * y ^ 2))
 
 /-- The defining equation of `E` at `(X / Z, Y / T)`, without division. -/
 theorem equation_div_iff {X Y Z T : F} (hZ : Z ≠ 0) (hT : T ≠ 0) :
@@ -60,8 +63,7 @@ theorem equation_div_iff {X Y Z T : F} (hZ : Z ≠ 0) (hT : T ≠ 0) :
 
 /-! ### The coordinate systems -/
 
-/-- Extended coordinates `(X : Y : Z : T)`: `x = X / Z`, `y = Y / Z`, `x y = T / Z`
-(curve25519-dalek's `EdwardsPoint`). -/
+/-- Extended coordinates `(X : Y : Z : T)`: `x = X / Z`, `y = Y / Z`, `x y = T / Z`. -/
 @[ext] structure Extended (E : TwistedEdwardsModel F) where
   /-- The `X`-coordinate. -/
   X : F
@@ -73,8 +75,7 @@ theorem equation_div_iff {X Y Z T : F} (hZ : Z ≠ 0) (hT : T ≠ 0) :
   T : F
   deriving DecidableEq
 
-/-- Projective coordinates `(X : Y : Z)`: `x = X / Z`, `y = Y / Z` (curve25519-dalek's
-`ProjectivePoint`). -/
+/-- Projective coordinates `(X : Y : Z)`: `x = X / Z`, `y = Y / Z`. -/
 @[ext] structure Projective (E : TwistedEdwardsModel F) where
   /-- The `X`-coordinate. -/
   X : F
@@ -84,8 +85,7 @@ theorem equation_div_iff {X Y Z T : F} (hZ : Z ≠ 0) (hT : T ≠ 0) :
   Z : F
   deriving DecidableEq
 
-/-- Completed coordinates `((X : Z), (Y : T)) ∈ ℙ¹ × ℙ¹`: `x = X / Z`, `y = Y / T`
-(curve25519-dalek's `CompletedPoint`). -/
+/-- Completed coordinates `((X : Z), (Y : T)) ∈ ℙ¹ × ℙ¹`: `x = X / Z`, `y = Y / T`. -/
 @[ext] structure Completed (E : TwistedEdwardsModel F) where
   /-- The `X`-coordinate, `x = X / Z`. -/
   X : F
@@ -124,22 +124,18 @@ that the kernel can evaluate it. -/
 instance instDecidableOnCurve [DecidableEq F] (P : E.Extended) : Decidable P.OnCurve :=
   decidable_of_iff _ (onCurve_iff_homogeneous P).symm
 
-/-- Projective equality, what `EdwardsPoint::ct_eq` computes (`T` is ignored). -/
+/-- Projective equality of `(X : Y : Z)`; `T` is determined by them on the curve. -/
 @[expose] def ProjEq (P Q : E.Extended) : Prop :=
   P.X * Q.Z = Q.X * P.Z ∧ P.Y * Q.Z = Q.Y * P.Z
 
 instance instDecidableRelProjEq [DecidableEq F] : DecidableRel (ProjEq (E := E)) :=
   fun _ _ => inferInstanceAs (Decidable (_ ∧ _))
 
-section IsComplete
-
-variable [E.IsComplete]
-
 open scoped Classical in
-/-- The point represented by `(X : Y : Z : T)`: `(X / Z, Y / Z)` when `OnCurve`, and `0`
+/-- The point represented by `(X : Y : Z : T)`: `(X / Z, Y / Z)` when `OnCurve`, and `(0, 1)`
 otherwise. Hidden; characterised by `toPoint_x`, `toPoint_y`, `toPoint_of_not_onCurve`. -/
 noncomputable def toPoint (P : E.Extended) : E.Point :=
-  if h : P.OnCurve then ⟨P.X / P.Z, P.Y / P.Z, h.2.2⟩ else 0
+  if h : P.OnCurve then ⟨P.X / P.Z, P.Y / P.Z, h.2.2⟩ else ⟨0, 1, E.equation_zero_one⟩
 
 /-- The `x`-coordinate of the point represented by `(X : Y : Z : T)` is `X / Z`. -/
 theorem toPoint_x {P : E.Extended} (h : P.OnCurve) : P.toPoint.x = P.X / P.Z := by
@@ -151,10 +147,16 @@ theorem toPoint_y {P : E.Extended} (h : P.OnCurve) : P.toPoint.y = P.Y / P.Z := 
   unfold toPoint
   rw [dite_eq_left h]
 
-/-- Off the curve, `toPoint` is `0`. -/
-theorem toPoint_of_not_onCurve {P : E.Extended} (h : ¬ P.OnCurve) : P.toPoint = 0 := by
+/-- Off the curve, `toPoint` is `(0, 1)`. -/
+theorem toPoint_of_not_onCurve {P : E.Extended} (h : ¬ P.OnCurve) :
+    P.toPoint = ⟨0, 1, E.equation_zero_one⟩ := by
   unfold toPoint
   rw [dite_eq_right h]
+
+/-- Off the curve of a complete model, `toPoint` is `0`. -/
+theorem toPoint_eq_zero_of_not_onCurve [E.IsComplete] {P : E.Extended} (h : ¬ P.OnCurve) :
+    P.toPoint = 0 := by
+  rw [toPoint_of_not_onCurve h, zero_eq_mk]
 
 /-- Projective equality is equality of the represented points. -/
 theorem projEq_iff_toPoint_eq {P Q : E.Extended} (hP : P.OnCurve) (hQ : Q.OnCurve) :
@@ -163,19 +165,21 @@ theorem projEq_iff_toPoint_eq {P Q : E.Extended} (hP : P.OnCurve) (hQ : Q.OnCurv
     div_eq_div_iff hP.1 hQ.1, div_eq_div_iff hP.1 hQ.1]
   rfl
 
-end IsComplete
-
-/-- The identity `(0 : 1 : 1 : 0)` (`EdwardsPoint::identity`). -/
+/-- The identity `(0 : 1 : 1 : 0)` -/
 @[expose] def identity : E.Extended :=
   ⟨0, 1, 1, 0⟩
 
-/-- Negation `(X : Y : Z : T) ↦ (-X : Y : Z : -T)` (`Neg for EdwardsPoint`). -/
+/-- Negation `(X : Y : Z : T) ↦ (-X : Y : Z : -T)` -/
 @[expose] def neg (P : E.Extended) : E.Extended :=
   ⟨-P.X, P.Y, P.Z, -P.T⟩
 
-/-- Forget `T` (`EdwardsPoint::as_projective`). -/
+/-- Forget `T`. -/
 @[expose] def toProjective (P : E.Extended) : E.Projective :=
   ⟨P.X, P.Y, P.Z⟩
+
+/-- Completed coordinates `((X : Z), (Y : Z))`. -/
+@[expose] def toCompleted (P : E.Extended) : E.Completed :=
+  ⟨P.X, P.Y, P.Z, P.Z⟩
 
 end Extended
 
@@ -211,15 +215,11 @@ instance instDecidableOnCurve [DecidableEq F] (P : E.Projective) : Decidable P.O
 instance instDecidableRelProjEq [DecidableEq F] : DecidableRel (ProjEq (E := E)) :=
   fun _ _ => inferInstanceAs (Decidable (_ ∧ _))
 
-section IsComplete
-
-variable [E.IsComplete]
-
 open scoped Classical in
-/-- The point represented by `(X : Y : Z)`: `(X / Z, Y / Z)` when `OnCurve`, and `0`
+/-- The point represented by `(X : Y : Z)`: `(X / Z, Y / Z)` when `OnCurve`, and `(0, 1)`
 otherwise. Hidden; characterised by `toPoint_x`, `toPoint_y`, `toPoint_of_not_onCurve`. -/
 noncomputable def toPoint (P : E.Projective) : E.Point :=
-  if h : P.OnCurve then ⟨P.X / P.Z, P.Y / P.Z, h.2⟩ else 0
+  if h : P.OnCurve then ⟨P.X / P.Z, P.Y / P.Z, h.2⟩ else ⟨0, 1, E.equation_zero_one⟩
 
 /-- The `x`-coordinate of the point represented by `(X : Y : Z)` is `X / Z`. -/
 theorem toPoint_x {P : E.Projective} (h : P.OnCurve) : P.toPoint.x = P.X / P.Z := by
@@ -231,10 +231,16 @@ theorem toPoint_y {P : E.Projective} (h : P.OnCurve) : P.toPoint.y = P.Y / P.Z :
   unfold toPoint
   rw [dite_eq_left h]
 
-/-- Off the curve, `toPoint` is `0`. -/
-theorem toPoint_of_not_onCurve {P : E.Projective} (h : ¬ P.OnCurve) : P.toPoint = 0 := by
+/-- Off the curve, `toPoint` is `(0, 1)`. -/
+theorem toPoint_of_not_onCurve {P : E.Projective} (h : ¬ P.OnCurve) :
+    P.toPoint = ⟨0, 1, E.equation_zero_one⟩ := by
   unfold toPoint
   rw [dite_eq_right h]
+
+/-- Off the curve of a complete model, `toPoint` is `0`. -/
+theorem toPoint_eq_zero_of_not_onCurve [E.IsComplete] {P : E.Projective} (h : ¬ P.OnCurve) :
+    P.toPoint = 0 := by
+  rw [toPoint_of_not_onCurve h, zero_eq_mk]
 
 /-- Projective equality is equality of the represented points. -/
 theorem projEq_iff_toPoint_eq {P Q : E.Projective} (hP : P.OnCurve) (hQ : Q.OnCurve) :
@@ -243,15 +249,21 @@ theorem projEq_iff_toPoint_eq {P Q : E.Projective} (hP : P.OnCurve) (hQ : Q.OnCu
     div_eq_div_iff hP.1 hQ.1, div_eq_div_iff hP.1 hQ.1]
   rfl
 
-end IsComplete
-
-/-- The identity `(0 : 1 : 1)` (`ProjectivePoint::identity`). -/
+/-- The identity `(0 : 1 : 1)` -/
 @[expose] def identity : E.Projective :=
   ⟨0, 1, 1⟩
 
-/-- Extended coordinates `(X Z : Y Z : Z² : X Y)` (`ProjectivePoint::as_extended`). -/
+/-- Negation `(X : Y : Z) ↦ (-X : Y : Z)`. -/
+@[expose] def neg (P : E.Projective) : E.Projective :=
+  ⟨-P.X, P.Y, P.Z⟩
+
+/-- Extended coordinates `(X Z : Y Z : Z² : X Y)` -/
 @[expose] def toExtended (P : E.Projective) : E.Extended :=
   ⟨P.X * P.Z, P.Y * P.Z, P.Z ^ 2, P.X * P.Y⟩
+
+/-- Completed coordinates `((X : Z), (Y : Z))`. -/
+@[expose] def toCompleted (P : E.Projective) : E.Completed :=
+  ⟨P.X, P.Y, P.Z, P.Z⟩
 
 end Projective
 
@@ -280,15 +292,18 @@ that the kernel can evaluate it. -/
 instance instDecidableOnCurve [DecidableEq F] (P : E.Completed) : Decidable P.OnCurve :=
   decidable_of_iff _ (onCurve_iff_homogeneous P).symm
 
-section IsComplete
+/-- Projective equality in `ℙ¹ × ℙ¹`: `(X : Z)` and `(Y : T)` agree separately. -/
+@[expose] def ProjEq (P Q : E.Completed) : Prop :=
+  P.X * Q.Z = Q.X * P.Z ∧ P.Y * Q.T = Q.Y * P.T
 
-variable [E.IsComplete]
+instance instDecidableRelProjEq [DecidableEq F] : DecidableRel (ProjEq (E := E)) :=
+  fun _ _ => inferInstanceAs (Decidable (_ ∧ _))
 
 open scoped Classical in
-/-- The point represented by `((X : Z), (Y : T))`: `(X / Z, Y / T)` when `OnCurve`, and `0`
+/-- The point represented by `((X : Z), (Y : T))`: `(X / Z, Y / T)` when `OnCurve`, and `(0, 1)`
 otherwise. Hidden; characterised by `toPoint_x`, `toPoint_y`, `toPoint_of_not_onCurve`. -/
 noncomputable def toPoint (P : E.Completed) : E.Point :=
-  if h : P.OnCurve then ⟨P.X / P.Z, P.Y / P.T, h.2.2⟩ else 0
+  if h : P.OnCurve then ⟨P.X / P.Z, P.Y / P.T, h.2.2⟩ else ⟨0, 1, E.equation_zero_one⟩
 
 /-- The `x`-coordinate of the point represented by `((X : Z), (Y : T))` is `X / Z`. -/
 theorem toPoint_x {P : E.Completed} (h : P.OnCurve) : P.toPoint.x = P.X / P.Z := by
@@ -300,18 +315,37 @@ theorem toPoint_y {P : E.Completed} (h : P.OnCurve) : P.toPoint.y = P.Y / P.T :=
   unfold toPoint
   rw [dite_eq_left h]
 
-/-- Off the curve, `toPoint` is `0`. -/
-theorem toPoint_of_not_onCurve {P : E.Completed} (h : ¬ P.OnCurve) : P.toPoint = 0 := by
+/-- Off the curve, `toPoint` is `(0, 1)`. -/
+theorem toPoint_of_not_onCurve {P : E.Completed} (h : ¬ P.OnCurve) :
+    P.toPoint = ⟨0, 1, E.equation_zero_one⟩ := by
   unfold toPoint
   rw [dite_eq_right h]
 
-end IsComplete
+/-- Off the curve of a complete model, `toPoint` is `0`. -/
+theorem toPoint_eq_zero_of_not_onCurve [E.IsComplete] {P : E.Completed} (h : ¬ P.OnCurve) :
+    P.toPoint = 0 := by
+  rw [toPoint_of_not_onCurve h, zero_eq_mk]
 
-/-- Extended coordinates `(X T : Y Z : Z T : X Y)` (`CompletedPoint::as_extended`). -/
+/-- Projective equality is equality of the represented points. -/
+theorem projEq_iff_toPoint_eq {P Q : E.Completed} (hP : P.OnCurve) (hQ : Q.OnCurve) :
+    P.ProjEq Q ↔ P.toPoint = Q.toPoint := by
+  rw [Point.ext_iff, toPoint_x hP, toPoint_x hQ, toPoint_y hP, toPoint_y hQ,
+    div_eq_div_iff hP.1 hQ.1, div_eq_div_iff hP.2.1 hQ.2.1]
+  rfl
+
+/-- The identity `((0 : 1), (1 : 1))`. -/
+@[expose] def identity : E.Completed :=
+  ⟨0, 1, 1, 1⟩
+
+/-- Negation `((X : Z), (Y : T)) ↦ ((-X : Z), (Y : T))`. -/
+@[expose] def neg (P : E.Completed) : E.Completed :=
+  ⟨-P.X, P.Y, P.Z, P.T⟩
+
+/-- Extended coordinates `(X T : Y Z : Z T : X Y)` -/
 @[expose] def toExtended (P : E.Completed) : E.Extended :=
   ⟨P.X * P.T, P.Y * P.Z, P.Z * P.T, P.X * P.Y⟩
 
-/-- Projective coordinates `(X T : Y Z : Z T)` (`CompletedPoint::as_projective`). -/
+/-- Projective coordinates `(X T : Y Z : Z T)` -/
 @[expose] def toProjective (P : E.Completed) : E.Projective :=
   ⟨P.X * P.T, P.Y * P.Z, P.Z * P.T⟩
 
@@ -321,9 +355,17 @@ end Completed
 
 namespace Point
 
-/-- Extended coordinates `(x : y : 1 : x y)` of an affine point (`AffinePoint::to_edwards`). -/
+/-- Extended coordinates `(x : y : 1 : x y)` of an affine point. -/
 @[expose] def toExtended (P : E.Point) : E.Extended :=
   ⟨P.x, P.y, 1, P.x * P.y⟩
+
+/-- Projective coordinates `(x : y : 1)` of an affine point. -/
+@[expose] def toProjective (P : E.Point) : E.Projective :=
+  ⟨P.x, P.y, 1⟩
+
+/-- Completed coordinates `((x : 1), (y : 1))` of an affine point. -/
+@[expose] def toCompleted (P : E.Point) : E.Completed :=
+  ⟨P.x, P.y, 1, 1⟩
 
 end Point
 

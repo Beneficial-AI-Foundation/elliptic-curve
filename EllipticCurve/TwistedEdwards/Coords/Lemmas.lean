@@ -13,16 +13,22 @@ import Mathlib.Tactic.Ring
 /-! # Twisted Edwards models: coordinate systems, lemmas
 
 The characterising statements about the coordinate systems of
-`EllipticCurve.TwistedEdwards.Coords.Defs`: each coordinate in terms of the represented point
-(`X_eq_toPoint_x_mul_Z`, …, the form the formula proofs use), the identities and negations
-(`onCurve_identity`, `toPoint_identity`, `onCurve_neg`, `toPoint_neg`), projective equality
-(`projEq_refl`, `projEq_symm`, `projEq_trans`) and the conversions between the systems
-(`onCurve_toProjective`, `toPoint_toProjective`, …): every conversion preserves `OnCurve` and
-represents the same point, and `Point.toExtended` is a section of `toPoint`.
+`EllipticCurve.TwistedEdwards.Coords.Defs`, for any model:
+
+* each coordinate in terms of the represented point (`X_eq_toPoint_x_mul_Z`, …, the form the
+  formula proofs use);
+* the identities and negations (`onCurve_identity`, `onCurve_neg`; on a complete model, where
+  `E.Point` is a group, `toPoint_identity` and `toPoint_neg`);
+* projective equality (`projEq_refl`, `projEq_symm`, `projEq_trans`);
+* the conversions between the systems and from affine points (`onCurve_toProjective`,
+  `toPoint_toProjective`, …): every conversion preserves `OnCurve` and represents the same point,
+  and `Point.toExtended`, `Point.toProjective`, `Point.toCompleted` are injective sections of
+  `toPoint`.
 
 Ported from curve25519-dalek's Lean verification
 (`Curve25519/Models/TwistedEdwards/Coords/Lemmas.lean`, commit `d2e92e7`), without the Niels
-coordinate systems. -/
+coordinate systems, with the coordinate lemmas for any model, and with the lemmas for the
+operations added in `EllipticCurve.TwistedEdwards.Coords.Defs`. -/
 
 public section
 
@@ -36,9 +42,9 @@ variable {F : Type u} [Field F] {E : TwistedEdwardsModel F}
 
 namespace Extended
 
-section IsComplete
+section Coordinates
 
-variable [E.IsComplete] {P : E.Extended}
+variable {P : E.Extended}
 
 /-- `X = x Z` for the represented point `(x, y)`. -/
 theorem X_eq_toPoint_x_mul_Z (h : P.OnCurve) : P.X = P.toPoint.x * P.Z := by
@@ -49,12 +55,13 @@ theorem Y_eq_toPoint_y_mul_Z (h : P.OnCurve) : P.Y = P.toPoint.y * P.Z := by
   rw [toPoint_y h, div_mul_cancel₀ _ h.1]
 
 /-- `T = x y Z` for the represented point `(x, y)`. -/
-theorem T_eq_toPoint_mul_Z (h : P.OnCurve) : P.T = P.toPoint.x * P.toPoint.y * P.Z := by
+theorem T_eq_toPoint_x_mul_y_mul_Z (h : P.OnCurve) :
+    P.T = P.toPoint.x * P.toPoint.y * P.Z := by
   have key := h.2.1
   rw [X_eq_toPoint_x_mul_Z h, Y_eq_toPoint_y_mul_Z h] at key
   exact mul_left_cancel₀ h.1 (by linear_combination -key)
 
-end IsComplete
+end Coordinates
 
 /-! #### Identity and negation -/
 
@@ -116,12 +123,25 @@ theorem onCurve_toProjective {P : E.Extended} (h : P.OnCurve) : P.toProjective.O
   ⟨h.1, h.2.2⟩
 
 /-- Forgetting `T` represents the same point. -/
-theorem toPoint_toProjective [E.IsComplete] {P : E.Extended} (h : P.OnCurve) :
+theorem toPoint_toProjective {P : E.Extended} (h : P.OnCurve) :
     P.toProjective.toPoint = P.toPoint := by
   refine Point.ext ?_ ?_
   · rw [Projective.toPoint_x (onCurve_toProjective h), toPoint_x h]
     rfl
   · rw [Projective.toPoint_y (onCurve_toProjective h), toPoint_y h]
+    rfl
+
+/-- `((X : Z), (Y : Z))` is on the curve when `(X : Y : Z : T)` is. -/
+theorem onCurve_toCompleted {P : E.Extended} (h : P.OnCurve) : P.toCompleted.OnCurve :=
+  ⟨h.1, h.1, h.2.2⟩
+
+/-- `((X : Z), (Y : Z))` represents the same point as `(X : Y : Z : T)`. -/
+theorem toPoint_toCompleted {P : E.Extended} (h : P.OnCurve) :
+    P.toCompleted.toPoint = P.toPoint := by
+  refine Point.ext ?_ ?_
+  · rw [Completed.toPoint_x (onCurve_toCompleted h), toPoint_x h]
+    rfl
+  · rw [Completed.toPoint_y (onCurve_toCompleted h), toPoint_y h]
     rfl
 
 end Extended
@@ -130,9 +150,9 @@ end Extended
 
 namespace Projective
 
-section IsComplete
+section Coordinates
 
-variable [E.IsComplete] {P : E.Projective}
+variable {P : E.Projective}
 
 /-- `X = x Z` for the represented point `(x, y)`. -/
 theorem X_eq_toPoint_x_mul_Z (h : P.OnCurve) : P.X = P.toPoint.x * P.Z := by
@@ -142,7 +162,9 @@ theorem X_eq_toPoint_x_mul_Z (h : P.OnCurve) : P.X = P.toPoint.x * P.Z := by
 theorem Y_eq_toPoint_y_mul_Z (h : P.OnCurve) : P.Y = P.toPoint.y * P.Z := by
   rw [toPoint_y h, div_mul_cancel₀ _ h.1]
 
-end IsComplete
+end Coordinates
+
+/-! #### Identity and negation -/
 
 /-- The identity `(0 : 1 : 1)` is on the curve. -/
 theorem onCurve_identity : (identity : E.Projective).OnCurve := by
@@ -159,6 +181,24 @@ theorem toPoint_identity [E.IsComplete] : (identity : E.Projective).toPoint = 0 
   · rw [toPoint_y onCurve_identity, zero_y]
     exact div_one 1
 
+/-- Negation preserves `OnCurve`. -/
+theorem onCurve_neg {P : E.Projective} (h : P.OnCurve) : P.neg.OnCurve := by
+  refine ⟨h.1, ?_⟩
+  change E.Equation (-P.X / P.Z) (P.Y / P.Z)
+  rw [neg_div]
+  exact equation_neg h.2
+
+/-- Negation in coordinates is negation of the represented point. -/
+theorem toPoint_neg [E.IsComplete] {P : E.Projective} (h : P.OnCurve) :
+    P.neg.toPoint = -P.toPoint := by
+  refine Point.ext ?_ ?_
+  · rw [toPoint_x (onCurve_neg h), neg_x, toPoint_x h]
+    exact neg_div _ _
+  · rw [toPoint_y (onCurve_neg h), neg_y, toPoint_y h]
+    rfl
+
+/-! #### Projective equality -/
+
 /-- `ProjEq` is reflexive. -/
 theorem projEq_refl (P : E.Projective) : P.ProjEq P :=
   ⟨rfl, rfl⟩
@@ -173,6 +213,8 @@ theorem projEq_trans {P Q R : E.Projective} (hQ : Q.Z ≠ 0) (h₁ : P.ProjEq Q)
   ⟨mul_right_cancel₀ hQ (by linear_combination R.Z * h₁.1 + P.Z * h₂.1),
     mul_right_cancel₀ hQ (by linear_combination R.Z * h₁.2 + P.Z * h₂.2)⟩
 
+/-! #### Conversions -/
+
 /-- `(X Z : Y Z : Z² : X Y)` is on the curve when `(X : Y : Z)` is. -/
 theorem onCurve_toExtended {P : E.Projective} (h : P.OnCurve) : P.toExtended.OnCurve := by
   refine ⟨pow_ne_zero 2 h.1, ?_, ?_⟩
@@ -183,7 +225,7 @@ theorem onCurve_toExtended {P : E.Projective} (h : P.OnCurve) : P.toExtended.OnC
     exact h.2
 
 /-- `(X Z : Y Z : Z² : X Y)` represents the same point as `(X : Y : Z)`. -/
-theorem toPoint_toExtended [E.IsComplete] {P : E.Projective} (h : P.OnCurve) :
+theorem toPoint_toExtended {P : E.Projective} (h : P.OnCurve) :
     P.toExtended.toPoint = P.toPoint := by
   refine Point.ext ?_ ?_
   · rw [Extended.toPoint_x (onCurve_toExtended h), toPoint_x h]
@@ -193,15 +235,28 @@ theorem toPoint_toExtended [E.IsComplete] {P : E.Projective} (h : P.OnCurve) :
     change P.Y * P.Z / P.Z ^ 2 = P.Y / P.Z
     rw [sq, mul_div_mul_right _ _ h.1]
 
+/-- `((X : Z), (Y : Z))` is on the curve when `(X : Y : Z)` is. -/
+theorem onCurve_toCompleted {P : E.Projective} (h : P.OnCurve) : P.toCompleted.OnCurve :=
+  ⟨h.1, h.1, h.2⟩
+
+/-- `((X : Z), (Y : Z))` represents the same point as `(X : Y : Z)`. -/
+theorem toPoint_toCompleted {P : E.Projective} (h : P.OnCurve) :
+    P.toCompleted.toPoint = P.toPoint := by
+  refine Point.ext ?_ ?_
+  · rw [Completed.toPoint_x (onCurve_toCompleted h), toPoint_x h]
+    rfl
+  · rw [Completed.toPoint_y (onCurve_toCompleted h), toPoint_y h]
+    rfl
+
 end Projective
 
 /-! ### Completed coordinates -/
 
 namespace Completed
 
-section IsComplete
+section Coordinates
 
-variable [E.IsComplete] {P : E.Completed}
+variable {P : E.Completed}
 
 /-- `X = x Z` for the represented point `(x, y)`. -/
 theorem X_eq_toPoint_x_mul_Z (h : P.OnCurve) : P.X = P.toPoint.x * P.Z := by
@@ -211,7 +266,58 @@ theorem X_eq_toPoint_x_mul_Z (h : P.OnCurve) : P.X = P.toPoint.x * P.Z := by
 theorem Y_eq_toPoint_y_mul_T (h : P.OnCurve) : P.Y = P.toPoint.y * P.T := by
   rw [toPoint_y h, div_mul_cancel₀ _ h.2.1]
 
-end IsComplete
+end Coordinates
+
+/-! #### Identity and negation -/
+
+/-- The identity `((0 : 1), (1 : 1))` is on the curve. -/
+theorem onCurve_identity : (identity : E.Completed).OnCurve := by
+  refine ⟨one_ne_zero, one_ne_zero, ?_⟩
+  change E.Equation (0 / 1) (1 / 1)
+  rw [zero_div, div_one]
+  exact E.equation_zero_one
+
+/-- The identity `((0 : 1), (1 : 1))` represents `0`. -/
+theorem toPoint_identity [E.IsComplete] : (identity : E.Completed).toPoint = 0 := by
+  refine Point.ext ?_ ?_
+  · rw [toPoint_x onCurve_identity, zero_x]
+    exact zero_div 1
+  · rw [toPoint_y onCurve_identity, zero_y]
+    exact div_one 1
+
+/-- Negation preserves `OnCurve`. -/
+theorem onCurve_neg {P : E.Completed} (h : P.OnCurve) : P.neg.OnCurve := by
+  refine ⟨h.1, h.2.1, ?_⟩
+  change E.Equation (-P.X / P.Z) (P.Y / P.T)
+  rw [neg_div]
+  exact equation_neg h.2.2
+
+/-- Negation in coordinates is negation of the represented point. -/
+theorem toPoint_neg [E.IsComplete] {P : E.Completed} (h : P.OnCurve) :
+    P.neg.toPoint = -P.toPoint := by
+  refine Point.ext ?_ ?_
+  · rw [toPoint_x (onCurve_neg h), neg_x, toPoint_x h]
+    exact neg_div _ _
+  · rw [toPoint_y (onCurve_neg h), neg_y, toPoint_y h]
+    rfl
+
+/-! #### Projective equality -/
+
+/-- `ProjEq` is reflexive. -/
+theorem projEq_refl (P : E.Completed) : P.ProjEq P :=
+  ⟨rfl, rfl⟩
+
+/-- `ProjEq` is symmetric. -/
+theorem projEq_symm {P Q : E.Completed} (h : P.ProjEq Q) : Q.ProjEq P :=
+  ⟨h.1.symm, h.2.symm⟩
+
+/-- `ProjEq` is transitive through a point with `Z ≠ 0` and `T ≠ 0`. -/
+theorem projEq_trans {P Q R : E.Completed} (hZ : Q.Z ≠ 0) (hT : Q.T ≠ 0) (h₁ : P.ProjEq Q)
+    (h₂ : Q.ProjEq R) : P.ProjEq R :=
+  ⟨mul_right_cancel₀ hZ (by linear_combination R.Z * h₁.1 + P.Z * h₂.1),
+    mul_right_cancel₀ hT (by linear_combination R.T * h₁.2 + P.T * h₂.2)⟩
+
+/-! #### Conversions -/
 
 /-- `(X T : Y Z : Z T : X Y)` is on the curve when `((X : Z), (Y : T))` is. -/
 theorem onCurve_toExtended {P : E.Completed} (h : P.OnCurve) : P.toExtended.OnCurve := by
@@ -223,7 +329,7 @@ theorem onCurve_toExtended {P : E.Completed} (h : P.OnCurve) : P.toExtended.OnCu
     exact h.2.2
 
 /-- `(X T : Y Z : Z T : X Y)` represents the same point as `((X : Z), (Y : T))`. -/
-theorem toPoint_toExtended [E.IsComplete] {P : E.Completed} (h : P.OnCurve) :
+theorem toPoint_toExtended {P : E.Completed} (h : P.OnCurve) :
     P.toExtended.toPoint = P.toPoint := by
   refine Point.ext ?_ ?_
   · rw [Extended.toPoint_x (onCurve_toExtended h), toPoint_x h]
@@ -241,7 +347,7 @@ theorem onCurve_toProjective {P : E.Completed} (h : P.OnCurve) : P.toProjective.
   exact h.2.2
 
 /-- `(X T : Y Z : Z T)` represents the same point as `((X : Z), (Y : T))`. -/
-theorem toPoint_toProjective [E.IsComplete] {P : E.Completed} (h : P.OnCurve) :
+theorem toPoint_toProjective {P : E.Completed} (h : P.OnCurve) :
     P.toProjective.toPoint = P.toPoint := by
   refine Point.ext ?_ ?_
   · rw [Projective.toPoint_x (onCurve_toProjective h), toPoint_x h]
@@ -267,7 +373,7 @@ theorem onCurve_toExtended (P : E.Point) : P.toExtended.OnCurve := by
     exact P.equation
 
 /-- `(x : y : 1 : x y)` represents `(x, y)`: `Point.toExtended` is a section of `toPoint`. -/
-theorem toPoint_toExtended [E.IsComplete] (P : E.Point) : P.toExtended.toPoint = P := by
+theorem toPoint_toExtended (P : E.Point) : P.toExtended.toPoint = P := by
   refine Point.ext ?_ ?_
   · rw [Extended.toPoint_x (onCurve_toExtended P)]
     exact div_one P.x
@@ -277,6 +383,44 @@ theorem toPoint_toExtended [E.IsComplete] (P : E.Point) : P.toExtended.toPoint =
 /-- `Point.toExtended` is injective. -/
 theorem toExtended_injective : Function.Injective (toExtended (E := E)) := fun _ _ h =>
   Point.ext (congrArg Extended.X h) (congrArg Extended.Y h)
+
+/-- `(x : y : 1)` is on the curve. -/
+theorem onCurve_toProjective (P : E.Point) : P.toProjective.OnCurve := by
+  refine ⟨one_ne_zero, ?_⟩
+  change E.Equation (P.x / 1) (P.y / 1)
+  rw [div_one, div_one]
+  exact P.equation
+
+/-- `(x : y : 1)` represents `(x, y)`: `Point.toProjective` is a section of `toPoint`. -/
+theorem toPoint_toProjective (P : E.Point) : P.toProjective.toPoint = P := by
+  refine Point.ext ?_ ?_
+  · rw [Projective.toPoint_x (onCurve_toProjective P)]
+    exact div_one P.x
+  · rw [Projective.toPoint_y (onCurve_toProjective P)]
+    exact div_one P.y
+
+/-- `Point.toProjective` is injective. -/
+theorem toProjective_injective : Function.Injective (toProjective (E := E)) := fun _ _ h =>
+  Point.ext (congrArg Projective.X h) (congrArg Projective.Y h)
+
+/-- `((x : 1), (y : 1))` is on the curve. -/
+theorem onCurve_toCompleted (P : E.Point) : P.toCompleted.OnCurve := by
+  refine ⟨one_ne_zero, one_ne_zero, ?_⟩
+  change E.Equation (P.x / 1) (P.y / 1)
+  rw [div_one, div_one]
+  exact P.equation
+
+/-- `((x : 1), (y : 1))` represents `(x, y)`: `Point.toCompleted` is a section of `toPoint`. -/
+theorem toPoint_toCompleted (P : E.Point) : P.toCompleted.toPoint = P := by
+  refine Point.ext ?_ ?_
+  · rw [Completed.toPoint_x (onCurve_toCompleted P)]
+    exact div_one P.x
+  · rw [Completed.toPoint_y (onCurve_toCompleted P)]
+    exact div_one P.y
+
+/-- `Point.toCompleted` is injective. -/
+theorem toCompleted_injective : Function.Injective (toCompleted (E := E)) := fun _ _ h =>
+  Point.ext (congrArg Completed.X h) (congrArg Completed.Y h)
 
 end Point
 
