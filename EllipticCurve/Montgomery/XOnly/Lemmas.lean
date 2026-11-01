@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: BAIF
 -/
 module
+public import EllipticCurve.Mathlib.Algebra.Group.Even
 public import EllipticCurve.Montgomery.XOnly.Defs
 public import Mathlib.Algebra.Group.Even
 import all EllipticCurve.Montgomery.XOnly.Defs
@@ -30,12 +31,6 @@ universe u
 namespace MontgomeryModel
 
 variable {F : Type u} [Field F] {M : MontgomeryModel F}
-
-/-! ### The twist -/
-
-/-- `0` is a square, so a non-square is nonzero. -/
-theorem ne_zero_of_not_isSquare {c : F} (hc : ¬ IsSquare c) : c ≠ 0 := fun h =>
-  hc (h ▸ IsSquare.zero)
 
 /-! ### Points with a given `u`-coordinate -/
 
