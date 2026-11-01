@@ -1,0 +1,23 @@
+name: Lean
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+      # Strict build (warnings are errors) and the Mathlib linters (`lake lint`).
+      - uses: leanprover/lean-action@v1
+        with:
+          build-args: "--wfail"
+          lint: true
+      # The tests (a separate, non-default library).
+      - run: lake build --wfail EllipticCurveTest

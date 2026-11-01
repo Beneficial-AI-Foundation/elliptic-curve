@@ -1,0 +1,26 @@
+name = "EllipticCurve"
+version = "0.1.0"
+keywords = ["math", "elliptic curves"]
+license = "Apache-2.0"
+defaultTargets = ["EllipticCurve"]
+lintDriver = "batteries/runLinter"
+
+[leanOptions]
+pp.unicode.fun = true # pretty-prints `fun a ↦ b`
+autoImplicit = false
+relaxedAutoImplicit = false
+weak.linter.mathlibStandardSet = true
+weak.linter.style.header = true
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+rev = "v4.35.0"
+
+[[lean_lib]]
+name = "EllipticCurve"
+
+# Tests (`lake build EllipticCurveTest`); not a default target.
+[[lean_lib]]
+name = "EllipticCurveTest"
+globs = ["EllipticCurveTest.+"]
