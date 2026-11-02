@@ -9,17 +9,19 @@ public import EllipticCurve.TwistedEdwards.Coords.Lemmas
 /-! # Twisted Edwards models: formulas in coordinates
 
 The group operations in the coordinate systems of `EllipticCurve.TwistedEdwards.Coords.Defs`, as
-exposed formulas of Hisil–Wong–Carter–Dawson 2008, for every `a`:
+exposed formulas for every `a`, named as in the Explicit-Formulas Database:
 
-* `Projective.double` ("dbl-2008-bbjlp", into completed coordinates);
-* `Extended.add` ("add-2008-hwcd", the complete extended addition), `Extended.double`, the
+* `Projective.double` ("dbl-2008-bbjlp", Bernstein–Birkner–Joye–Lange–Peters, *Twisted Edwards
+  curves*, 2008; here into completed coordinates);
+* `Extended.add` ("add-2008-hwcd", Hisil–Wong–Carter–Dawson, *Twisted Edwards curves revisited*,
+  2008: the complete extended addition), `Extended.double`, the
   structurally recursive `Extended.nsmul` by double-and-add, and the zero test `Extended.IsZero`.
 
 Field inversion appears nowhere, so that kernel `decide` can evaluate them on constants.
 Correctness with respect to `toPoint`, on a complete model, is in
-`EllipticCurve.TwistedEdwards.Formulas.Lemmas`, together with the criterion that recognises a
-sum (`Completed.onCurve_and_toPoint_eq_add`, `Extended.onCurve_and_toPoint_eq_add`), which also
-proves other formulas built on these coordinates.
+`EllipticCurve.TwistedEdwards.Formulas.Lemmas`, together with the criteria that recognise a
+sum in each coordinate system (`*.onCurve_of_eq_add`, `*.onCurve_and_toPoint_eq_add`), which also
+prove other formulas built on these coordinates.
 
 Ported from curve25519-dalek's Lean verification
 (`Curve25519/Models/TwistedEdwards/Formulas/Defs.lean`, commit `d2e92e7`), without the mixed

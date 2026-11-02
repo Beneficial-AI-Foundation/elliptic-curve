@@ -21,7 +21,7 @@ The purpose of this repo is as a stop-gap for those needing multiple elliptic cu
   - point counts over finite fields and the mass formula.
 - **Models**, each with its own point type, group law in coordinates and curve:
   - Montgomery, with x-only scalar multiplication and the Montgomery ladder (RFC 7748) computing it, on the curve and its quadratic twists;
-  - twisted Edwards (complete), with its 4-torsion and the projective, extended and completed coordinate systems, whose inversion-free addition, doubling and scalar multiplication are proved correct;
+  - twisted Edwards (complete), with its 4-torsion and the projective, extended and completed coordinate systems (conversions, negation, projective equality); inversion-free addition and scalar multiplication in extended coordinates and doubling from projective coordinates are proved correct, and a criterion recognising a sum in each system proves further formulas;
   - Weierstrass, via Mathlib (whose Jacobian and projective coordinates come with their group law).
 
   Also criteria for a curve to have a Montgomery or a complete twisted Edwards model.

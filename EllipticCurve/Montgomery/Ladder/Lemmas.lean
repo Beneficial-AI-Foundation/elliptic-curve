@@ -19,9 +19,10 @@ import Mathlib.Tactic.Ring
 The characterising statements about the ladder of `EllipticCurve.Montgomery.Ladder.Defs`:
 
 - the correctness of the RFC 7748 formulas with respect to `XZ.Represents`
-  (`XZ.represents_xDBL`, `XZ.represents_xADD`, with the degenerate cases: the point at
+  (`XZ.represents_xDbl`, `XZ.represents_add`, with the degenerate cases: the point at
   infinity, the 2-torsion point `(0, 0)`, `Q₁ = ± Q₂`);
-- the ladder: `ladder_eq_u_nsmul` (`u(k • Q)` for `u(Q) ≠ 0`, `k < 2 ^ bits`), `ladder_zero`,
+- the ladder: `ladder_eq_u_mod_nsmul` (`u((k % 2 ^ bits) • Q)`, for every `Q` and `k`) and
+  `ladder_eq_u_nsmul` (`u(k • Q)` for `k < 2 ^ bits`), on `M` and on its twists, `ladder_zero`,
   `ladder_twist` (the ladder only depends on `A`), and `ladder_eq_xMul` (`xMul` and its
   characterisation are in `EllipticCurve.Montgomery.XOnly`).
 
@@ -84,7 +85,7 @@ theorem toU_of_represents {P : XZ F} {Q : M.Point} (h : P.Represents Q) : P.toU 
 
 end Represents
 
-/-! ### Correctness of `xDBL` and `xADD` -/
+/-! ### Correctness of `xDbl` and `add` -/
 
 private theorem cert_dbl_W (a24 A B u v W : F) (h4 : 4 * a24 = A - 2)
     (h : B * v ^ 2 = u ^ 3 + A * u ^ 2 + u) :
@@ -101,11 +102,11 @@ section Formulas
 
 variable [M.IsNonsingular]
 
-/-- `xDBL` doubles: if `(U : W)` represents `Q` then `xDBL (U : W)` represents `2 • Q`. All
+/-- `xDbl` doubles: if `(U : W)` represents `Q` then `xDbl (U : W)` represents `2 • Q`. All
 cases: `Q = ∞`, `Q` of order `2` (`v = 0`, where `2 • Q = ∞` and `u² ≠ 1` by
 nonsingularity), and `v ≠ 0` (the tangent identity `B u(2 Q) (2 v)² = (u² - 1)²`). -/
-theorem represents_xDBL {P : XZ F} {Q : M.Point} (h : P.Represents Q) :
-    (M.xDBL P).Represents (2 • Q) := by
+theorem represents_xDbl {P : XZ F} {Q : M.Point} (h : P.Represents Q) :
+    (M.xDbl P).Represents (2 • Q) := by
   have h2 : (2 : F) ≠ 0 := IsNonsingular.two_ne_zero (M := M)
   have h4 : (4 : F) ≠ 0 := four_ne_zero' M
   have hB : M.B ≠ 0 := IsNonsingular.B_ne_zero
@@ -128,9 +129,9 @@ theorem represents_xDBL {P : XZ F} {Q : M.Point} (h : P.Represents Q) :
     change U = u * W at hU
     subst hU
     have hQ' : M.B * v ^ 2 = u ^ 3 + M.A * u ^ 2 + u := hQ
-    have hW₂ : (M.xDBL ⟨u * W, W⟩).W = 4 * W ^ 4 * (M.B * v ^ 2) :=
+    have hW₂ : (M.xDbl ⟨u * W, W⟩).W = 4 * W ^ 4 * (M.B * v ^ 2) :=
       cert_dbl_W M.a24 M.A M.B u v W ha24 hQ'
-    have hU₂ : (M.xDBL ⟨u * W, W⟩).U = (u * W + W) ^ 2 * (u * W - W) ^ 2 := rfl
+    have hU₂ : (M.xDbl ⟨u * W, W⟩).U = (u * W + W) ^ 2 * (u * W - W) ^ 2 := rfl
     by_cases hv : v = 0
     · subst hv
       rw [two_nsmul, some_add_some_eq_zero hQ hQ rfl (by rw [neg_zero]), represents_zero_iff,
@@ -159,22 +160,22 @@ theorem represents_xDBL {P : XZ F} {Q : M.Point} (h : P.Represents Q) :
         ?_⟩
       exact cert_dbl_U M.B u v W _ key
 
-/-- `xADD` adds: if `P₁`, `P₂` represent `Q₁`, `Q₂` and `u₁ = u(Q₁ - Q₂) ≠ 0` then
-`xADD P₁ P₂ u₁` represents `Q₁ + Q₂`. All cases: `Q₁ = ∞` or `Q₂ = ∞`, `Q₁ = -Q₂` (then
+/-- Differential addition adds: if `P₁`, `P₂` represent `Q₁`, `Q₂` and `u₁ = u(Q₁ - Q₂) ≠ 0`
+then `add P₁ P₂ u₁` represents `Q₁ + Q₂`. All cases: `Q₁ = ∞` or `Q₂ = ∞`, `Q₁ = -Q₂` (then
 `u₁ = u(2 Q₁) ≠ 0` and the sum is `∞`), `Q₁ = Q₂` (excluded by `u₁ ≠ 0`), and distinct
 `u`-coordinates (the identity `u(Q₁ + Q₂) u(Q₁ - Q₂) (u₁ - u₂)² = (u₁ u₂ - 1)²`). -/
-theorem represents_xADD {P₁ P₂ : XZ F} {Q₁ Q₂ : M.Point} (h₁ : P₁.Represents Q₁)
+theorem represents_add {P₁ P₂ : XZ F} {Q₁ Q₂ : M.Point} (h₁ : P₁.Represents Q₁)
     (h₂ : P₂.Represents Q₂) {u₁ : F} (hd : (Q₁ - Q₂).u = u₁) (hu : u₁ ≠ 0) :
-    (xADD P₁ P₂ u₁).Represents (Q₁ + Q₂) := by
+    (add P₁ P₂ u₁).Represents (Q₁ + Q₂) := by
   have h2 : (2 : F) ≠ 0 := IsNonsingular.two_ne_zero (M := M)
   have h4 : (4 : F) ≠ 0 := four_ne_zero' M
   have hB : M.B ≠ 0 := IsNonsingular.B_ne_zero
   obtain ⟨U₁, W₁⟩ := P₁
   obtain ⟨U₂, W₂⟩ := P₂
-  have hU₃ : (xADD ⟨U₁, W₁⟩ ⟨U₂, W₂⟩ u₁).U = 4 * (U₁ * U₂ - W₁ * W₂) ^ 2 := by
+  have hU₃ : (add ⟨U₁, W₁⟩ ⟨U₂, W₂⟩ u₁).U = 4 * (U₁ * U₂ - W₁ * W₂) ^ 2 := by
     change ((U₂ - W₂) * (U₁ + W₁) + (U₂ + W₂) * (U₁ - W₁)) ^ 2 = _
     ring
-  have hW₃ : (xADD ⟨U₁, W₁⟩ ⟨U₂, W₂⟩ u₁).W = 4 * u₁ * (U₂ * W₁ - U₁ * W₂) ^ 2 := by
+  have hW₃ : (add ⟨U₁, W₁⟩ ⟨U₂, W₂⟩ u₁).W = 4 * u₁ * (U₂ * W₁ - U₁ * W₂) ^ 2 := by
     change u₁ * ((U₂ - W₂) * (U₁ + W₁) - (U₂ + W₂) * (U₁ - W₁)) ^ 2 = _
     ring
   rcases Point.cases Q₁ with rfl | ⟨a, b, hQ₁, rfl⟩
@@ -264,16 +265,16 @@ theorem represents_xADD {P₁ P₂ : XZ F} {Q₁ Q₂ : M.Point} (h₁ : P₁.Re
         (mul_ne_zero (mul_ne_zero hW₁ hW₂) (sub_ne_zero.mpr (Ne.symm hac))))
     · linear_combination (-(4 * W₁ ^ 2 * W₂ ^ 2)) * key
 
-/-- The affine coordinate of `xDBL (U : W)` for `(U : W)` representing `Q` is `u(2 • Q)`. -/
-theorem toU_xDBL {P : XZ F} {Q : M.Point} (h : P.Represents Q) : (M.xDBL P).toU = (2 • Q).u :=
-  toU_of_represents (represents_xDBL h)
+/-- The affine coordinate of `xDbl (U : W)` for `(U : W)` representing `Q` is `u(2 • Q)`. -/
+theorem toU_xDbl {P : XZ F} {Q : M.Point} (h : P.Represents Q) : (M.xDbl P).toU = (2 • Q).u :=
+  toU_of_represents (represents_xDbl h)
 
-/-- The affine coordinate of `xADD P₁ P₂ u₁` is `u(Q₁ + Q₂)`, under the hypotheses of
-`represents_xADD`. -/
-theorem toU_xADD {P₁ P₂ : XZ F} {Q₁ Q₂ : M.Point} (h₁ : P₁.Represents Q₁)
+/-- The affine coordinate of `add P₁ P₂ u₁` is `u(Q₁ + Q₂)`, under the hypotheses of
+`represents_add`. -/
+theorem toU_add {P₁ P₂ : XZ F} {Q₁ Q₂ : M.Point} (h₁ : P₁.Represents Q₁)
     (h₂ : P₂.Represents Q₂) {u₁ : F} (hd : (Q₁ - Q₂).u = u₁) (hu : u₁ ≠ 0) :
-    (xADD P₁ P₂ u₁).toU = (Q₁ + Q₂).u :=
-  toU_of_represents (represents_xADD h₁ h₂ hd hu)
+    (add P₁ P₂ u₁).toU = (Q₁ + Q₂).u :=
+  toU_of_represents (represents_add h₁ h₂ hd hu)
 
 end Formulas
 
@@ -288,7 +289,7 @@ section Ladder
 variable [M.IsNonsingular]
 
 /-- The "even" step: from `(X, Y)` representing `(m • Q, (m + 1) • Q)` to
-`(xDBL X, xADD X Y u(Q))` representing `(2 m • Q, (2 m + 1) • Q)`. -/
+`(xDbl X, add X Y u(Q))` representing `(2 m • Q, (2 m + 1) • Q)`. -/
 private theorem step_even {Q : M.Point} (hu : Q.u ≠ 0) {X Y : XZ F} {m : ℕ}
     (h₀ : X.Represents (m • Q)) (h₁ : Y.Represents ((m + 1) • Q)) :
     (dbl M.a24 X).Represents ((2 * m) • Q) ∧ (add X Y Q.u).Represents ((2 * m + 1) • Q) := by
@@ -297,10 +298,10 @@ private theorem step_even {Q : M.Point} (hu : Q.u ≠ 0) {X Y : XZ F} {m : ℕ}
     rw [← add_nsmul, show m + (m + 1) = 2 * m + 1 by omega]
   have hd : (m • Q - (m + 1) • Q).u = Q.u := by rw [succ_nsmul, sub_add_cancel_left, u_neg]
   rw [e₀, e₁]
-  exact ⟨represents_xDBL h₀, represents_xADD h₀ h₁ hd hu⟩
+  exact ⟨represents_xDbl h₀, represents_add h₀ h₁ hd hu⟩
 
 /-- The "odd" step: from `(X, Y)` representing `(m • Q, (m + 1) • Q)` to
-`(xADD Y X u(Q), xDBL Y)` representing `((2 m + 1) • Q, (2 m + 2) • Q)`. -/
+`(add Y X u(Q), xDbl Y)` representing `((2 m + 1) • Q, (2 m + 2) • Q)`. -/
 private theorem step_odd {Q : M.Point} (hu : Q.u ≠ 0) {X Y : XZ F} {m : ℕ}
     (h₀ : X.Represents (m • Q)) (h₁ : Y.Represents ((m + 1) • Q)) :
     (add Y X Q.u).Represents ((2 * m + 1) • Q) ∧
@@ -311,7 +312,7 @@ private theorem step_odd {Q : M.Point} (hu : Q.u ≠ 0) {X Y : XZ F} {m : ℕ}
     rw [smul_smul, show 2 * (m + 1) = 2 * m + 1 + 1 by omega]
   have hd : ((m + 1) • Q - m • Q).u = Q.u := by rw [succ_nsmul, add_sub_cancel_left]
   rw [e₀, e₁]
-  exact ⟨represents_xADD h₁ h₀ hd hu, represents_xDBL h₁⟩
+  exact ⟨represents_add h₁ h₀ hd hu, represents_xDbl h₁⟩
 
 /-- One ladder step preserves the invariant, with `m ↦ 2 m + k_t`. -/
 private theorem ladderStep_inv {Q : M.Point} (hu : Q.u ≠ 0) {s : LadderState F} {m : ℕ}
@@ -483,9 +484,12 @@ section LadderXMul
 
 variable [M.IsNonsingular]
 
-/-- The ladder computes `u(k • Q)` from `u(Q) ≠ 0`, for `k < 2 ^ bits`. -/
-theorem ladder_eq_u_nsmul (Q : M.Point) (hu : Q.u ≠ 0) {bits k : ℕ} (hk : k < 2 ^ bits) :
-    M.ladder bits k Q.u = (k • Q).u := by
+/-- The ladder over `bits` bits computes `u((k % 2 ^ bits) • Q)` on `u(Q)`, for every point `Q`
+and every `k`. -/
+theorem ladder_eq_u_mod_nsmul (Q : M.Point) (bits k : ℕ) :
+    M.ladder bits k Q.u = ((k % 2 ^ bits) • Q).u := by
+  by_cases hu : Q.u = 0
+  · rw [u_nsmul_of_u_eq_zero hu, hu, ladder_zero]
   have h₀ : (XZ.canon ⟨⟨1, 0⟩, ⟨Q.u, 1⟩, false⟩).1.Represents ((0 : ℕ) • Q) := by
     rw [zero_nsmul, XZ.represents_zero_iff]
     exact ⟨rfl, one_ne_zero⟩
@@ -498,15 +502,26 @@ theorem ladder_eq_u_nsmul (Q : M.Point) (hu : Q.u ≠ 0) {bits k : ℕ} (hk : k 
       change (Point.some u v h).u = u * 1
       rw [u_some, mul_one]
   obtain ⟨h, _⟩ := XZ.ladderLoop_inv hu k bits _ 0 h₀ h₁
-  rw [zero_mul, zero_add, Nat.mod_eq_of_lt hk] at h
+  rw [zero_mul, zero_add] at h
   exact XZ.toU_of_represents h
 
+/-- The ladder over `bits` bits computes `u(k • Q)` on `u(Q)`, for `k < 2 ^ bits`. -/
+theorem ladder_eq_u_nsmul (Q : M.Point) {bits k : ℕ} (hk : k < 2 ^ bits) :
+    M.ladder bits k Q.u = (k • Q).u := by
+  rw [ladder_eq_u_mod_nsmul, Nat.mod_eq_of_lt hk]
+
 omit [M.IsNonsingular] in
-/-- The ladder computes `u(k • Q)` from `u(Q) ≠ 0` for a point `Q` of the twist, too. -/
-theorem ladder_eq_u_nsmul_twist {c : F} [(M.twist c).IsNonsingular] (Q : (M.twist c).Point)
-    (hu : Q.u ≠ 0) {bits k : ℕ} (hk : k < 2 ^ bits) : M.ladder bits k Q.u = (k • Q).u := by
+/-- The ladder of `M` computes `u((k % 2 ^ bits) • Q)` for a point `Q` of a twist, too. -/
+theorem ladder_eq_u_mod_nsmul_twist {c : F} [(M.twist c).IsNonsingular] (Q : (M.twist c).Point)
+    (bits k : ℕ) : M.ladder bits k Q.u = ((k % 2 ^ bits) • Q).u := by
   rw [← ladder_twist M c]
-  exact ladder_eq_u_nsmul Q hu hk
+  exact ladder_eq_u_mod_nsmul Q bits k
+
+omit [M.IsNonsingular] in
+/-- The ladder of `M` computes `u(k • Q)` for a point `Q` of a twist, too, for `k < 2 ^ bits`. -/
+theorem ladder_eq_u_nsmul_twist {c : F} [(M.twist c).IsNonsingular] (Q : (M.twist c).Point)
+    {bits k : ℕ} (hk : k < 2 ^ bits) : M.ladder bits k Q.u = (k • Q).u := by
+  rw [ladder_eq_u_mod_nsmul_twist, Nat.mod_eq_of_lt hk]
 
 /-- The ladder agrees with `xMul` on every `u` that lifts to `M` or to the twist by a
 non-square `c`, for `k < 2 ^ bits`. -/
@@ -514,12 +529,9 @@ theorem ladder_eq_xMul_of_exists {c : F} (hc : ¬ IsSquare c) {bits k : ℕ} (hk
     {u : F} (h : (∃ P : M.Point, P.u = u) ∨ ∃ P : (M.twist c).Point, P.u = u) :
     M.ladder bits k u = M.xMul c k u := by
   have := M.isNonsingular_twist (ne_zero_of_not_isSquare hc)
-  by_cases hu : u = 0
-  · subst hu
-    rw [ladder_zero, xMul_zero_right]
   rcases h with ⟨Q, rfl⟩ | ⟨Q, rfl⟩
-  · rw [ladder_eq_u_nsmul Q hu hk, xMul_eq_u_nsmul]
-  · rw [ladder_eq_u_nsmul_twist Q hu hk, xMul_eq_u_nsmul_twist hc]
+  · rw [ladder_eq_u_nsmul Q hk, xMul_eq_u_nsmul]
+  · rw [ladder_eq_u_nsmul_twist Q hk, xMul_eq_u_nsmul_twist hc]
 
 /-- Over a finite field, the ladder is `xMul` for a non-square `c` and `k < 2 ^ bits`. -/
 theorem ladder_eq_xMul [Finite F] {c : F} (hc : ¬ IsSquare c) {bits k : ℕ} (hk : k < 2 ^ bits)

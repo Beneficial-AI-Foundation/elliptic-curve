@@ -13,7 +13,9 @@ import Mathlib.Tactic.Ring
 /-! # Twisted Edwards models: coordinate systems
 
 The projective coordinate systems of a twisted Edwards model `E` used for inversion-free
-arithmetic (Hisil–Wong–Carter–Dawson, *Twisted Edwards curves revisited*, 2008):
+arithmetic (Bernstein–Birkner–Joye–Lange–Peters, *Twisted Edwards curves*, 2008, for projective
+coordinates; Hisil–Wong–Carter–Dawson, *Twisted Edwards curves revisited*, 2008, for extended and
+completed coordinates):
 
 * `E.Extended`: `(X : Y : Z : T)` with `x = X / Z`, `y = Y / Z`, `x y = T / Z`;
 * `E.Projective`: `(X : Y : Z)` with `x = X / Z`, `y = Y / Z`;
