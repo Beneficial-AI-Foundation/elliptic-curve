@@ -45,6 +45,10 @@ variable {F : Type u} [Field F] (E : TwistedEdwardsModel F)
 @[expose] def Equation (x y : F) : Prop :=
   E.a * x ^ 2 + y ^ 2 = 1 + E.d * x ^ 2 * y ^ 2
 
+/-- The equation of a model is decidable in a field with decidable equality. -/
+instance instDecidableEquation [DecidableEq F] (x y : F) : Decidable (E.Equation x y) :=
+  inferInstanceAs (Decidable (E.a * x ^ 2 + y ^ 2 = 1 + E.d * x ^ 2 * y ^ 2))
+
 /-- The invariant `c₄ = 16 (a² + 14 a d + d²)` of the model. The invariants of the Montgomery
 model are `M.c₄ = u⁴ E.c₄`, `M.c₆ = u⁶ E.c₆` with `u = 2 / (a - d)` (`toCurve_eq_mk`). -/
 @[expose] def c₄ : F :=

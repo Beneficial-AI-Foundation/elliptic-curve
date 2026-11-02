@@ -18,8 +18,8 @@ The x-only arithmetic of a Montgomery model `M`, i.e. what depends only on the
   point of `M` or, failing that, of the twist `M.twist c`, and characterised by
   `xMul_eq_u_nsmul`, `xMul_eq_u_nsmul_twist` (`EllipticCurve.Montgomery.XOnly.Lemmas`).
 
-Algorithms computing `xMul` (the Montgomery ladder, projective `(U : W)` formulas) belong to
-applications, not to this library. -/
+The Montgomery ladder, on projective `(U : W)` coordinates, computes `xMul`
+(`EllipticCurve.Montgomery.Ladder`, `ladder_eq_xMul`). -/
 
 public section
 

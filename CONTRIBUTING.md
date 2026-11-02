@@ -6,7 +6,6 @@ Read `README.md` first; it lists possible next steps.
 ## Scope
 
 Elliptic curves *in the mathematical sense*, over fields away from 6: curves, models, groups, twists, invariants and classification.
-Material that exists only for an application (coordinate systems for fast arithmetic, encodings, protocols) belongs to libraries built on this one.
 
 ## Constraints
 

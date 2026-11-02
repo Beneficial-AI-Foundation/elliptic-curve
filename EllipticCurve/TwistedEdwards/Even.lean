@@ -6,6 +6,8 @@ Authors: BAIF
 module
 public import EllipticCurve.TwistedEdwards.Group
 public import Mathlib.Algebra.Group.Subgroup.Even
+public import Mathlib.Algebra.Module.Torsion.Basic
+import EllipticCurve.Mathlib.Algebra.Group.Even
 import EllipticCurve.Montgomery.Lemmas
 import EllipticCurve.TwistedEdwards.Lemmas
 import Mathlib.Tactic.FieldSimp
@@ -18,7 +20,9 @@ import Mathlib.Tactic.Ring
 Tools for talking about the even points `2 E` (Mathlib's `Even P`, `AddSubgroup.even E.Point`)
 of a complete twisted Edwards model:
 
-* the 4-torsion in coordinates: `4 • P = 0 ↔ x = 0 ∨ y = 0` (`four_nsmul_eq_zero_iff`);
+* the 4-torsion in coordinates: `4 • P = 0 ↔ x = 0 ∨ y = 0` (`four_nsmul_eq_zero_iff`), and the
+  4-torsion subgroup `E.Point[4]`, Mathlib's `AddSubgroup.torsionBy E.Point 4`, as
+  `{x = 0} ∪ {y = 0}` (`mem_torsionBy_four_iff`);
 * the generic half of the 2-descent: the subgroup `E.descent` of the points with
   `(a - d)(1 - y²)` a square contains the even points (`even_le_descent`, `isSquare_of_even`),
   through the descent map `Q ↦ B u(Q)` of the Montgomery model
@@ -60,6 +64,13 @@ theorem four_nsmul_eq_zero_iff [NeZero (6 : F)] (P : E.Point) : 4 • P = 0 ↔ 
       rw [h]
       ring
 
+/-- The 4-torsion subgroup `E.Point[4]` (Mathlib's `AddSubgroup.torsionBy`) of a complete model
+is `{x = 0} ∪ {y = 0}`. -/
+theorem mem_torsionBy_four_iff [NeZero (6 : F)] (P : E.Point) :
+    P ∈ AddSubgroup.torsionBy E.Point 4 ↔ P.x = 0 ∨ P.y = 0 := by
+  rw [show (4 : ℤ) = ((4 : ℕ) : ℤ) from rfl, AddSubgroup.torsionBy.nsmul_iff,
+    four_nsmul_eq_zero_iff]
+
 /-! ### The 2-descent: the generic half
 
 For a point `P` of `E` with Montgomery image `Q`,
@@ -68,16 +79,6 @@ so the kernel of the descent map `Q ↦ B u(Q)` modulo squares of `E.toMontgomer
 (`MontgomeryModel.isSquare_B_mul_u_add`) pulls back to the subgroup `E.descent` of points with
 `(a - d)(1 - y²)` a square. It contains every double
 (`MontgomeryModel.isSquare_B_mul_u_two_nsmul`), hence the even points. -/
-
-private theorem isSquare_sq_mul_iff {c x : F} (hc : c ≠ 0) :
-    IsSquare (c ^ 2 * x) ↔ IsSquare x := by
-  constructor
-  · rintro ⟨r, hr⟩
-    refine ⟨r / c, ?_⟩
-    rw [div_mul_div_comm, eq_div_iff (mul_ne_zero hc hc), ← hr]
-    ring
-  · rintro ⟨r, hr⟩
-    exact ⟨c * r, by rw [hr]; ring⟩
 
 /-- The descent class of a point, on the Montgomery side and on the Edwards side:
 `B u(Q)` is a square iff `(a - d)(1 - y²)` is. -/

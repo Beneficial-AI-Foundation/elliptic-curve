@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: BAIF
 -/
 module
+public import EllipticCurve.Mathlib.Algebra.Group.Even
 public import EllipticCurve.Montgomery.XOnly.Defs
 public import Mathlib.Algebra.Group.Even
 import all EllipticCurve.Montgomery.XOnly.Defs
@@ -21,7 +22,10 @@ The characterising statements about the x-only arithmetic of `EllipticCurve.Mont
 - the multiples of points with the same `u`-coordinate (`u_nsmul_eq_of_u_eq`), on `M` and on
   its twist (`u_nsmul_eq_u_nsmul_twist`);
 - the well-definedness of `xMul` (`xMul_eq_u_nsmul`, `xMul_eq_u_nsmul_twist`), its values at
-  `0` and `1`, and `xMul_mul`. -/
+  `0` and `1`, and `xMul_mul`.
+
+`EllipticCurve.Mathlib.Algebra.Group.Even` is imported publicly although no statement here
+mentions it: `ne_zero_of_not_isSquare` used to be declared here, and importers keep it. -/
 
 public section
 
@@ -30,12 +34,6 @@ universe u
 namespace MontgomeryModel
 
 variable {F : Type u} [Field F] {M : MontgomeryModel F}
-
-/-! ### The twist -/
-
-/-- `0` is a square, so a non-square is nonzero. -/
-theorem ne_zero_of_not_isSquare {c : F} (hc : ¬ IsSquare c) : c ≠ 0 := fun h =>
-  hc (h ▸ IsSquare.zero)
 
 /-! ### Points with a given `u`-coordinate -/
 

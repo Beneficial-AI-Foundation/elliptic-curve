@@ -9,9 +9,12 @@ public import EllipticCurve.Curve.Weierstrass
 public import EllipticCurve.Field.AwayFromSix
 public import EllipticCurve.FunctionField.Constants
 public import EllipticCurve.FunctionField.Place
+public import EllipticCurve.Mathlib.Algebra.Group.Even
 public import EllipticCurve.Montgomery.Count
 public import EllipticCurve.Montgomery.Defs
 public import EllipticCurve.Montgomery.HasModel
+public import EllipticCurve.Montgomery.Ladder.Defs
+public import EllipticCurve.Montgomery.Ladder.Lemmas
 public import EllipticCurve.Montgomery.Lemmas
 public import EllipticCurve.Montgomery.Rescale
 public import EllipticCurve.Montgomery.XOnly.Defs
@@ -26,9 +29,13 @@ public import EllipticCurve.PlaneModel.GroupLaw
 public import EllipticCurve.PlaneModel.Linear
 public import EllipticCurve.PlaneModel.Montgomery
 public import EllipticCurve.PlaneModel.Translation
+public import EllipticCurve.TwistedEdwards.Coords.Defs
+public import EllipticCurve.TwistedEdwards.Coords.Lemmas
 public import EllipticCurve.TwistedEdwards.Defs
 public import EllipticCurve.TwistedEdwards.Even
 public import EllipticCurve.TwistedEdwards.Formula
+public import EllipticCurve.TwistedEdwards.Formulas.Defs
+public import EllipticCurve.TwistedEdwards.Formulas.Lemmas
 public import EllipticCurve.TwistedEdwards.Group
 public import EllipticCurve.TwistedEdwards.HasModel
 public import EllipticCurve.TwistedEdwards.Lemmas
@@ -55,10 +62,12 @@ and their models.
   formula (`Mass`); Weierstrass models and their automorphisms (`Weierstrass`).
 * `EllipticCurve.Montgomery.*`: the Montgomery model, its curve and group law in coordinates, the
   criterion for a curve to have a Montgomery model (`HasModel`), rescalings (`Rescale`), point
-  counts (`Count`) and x-only scalar multiplication (`XOnly`).
+  counts (`Count`), x-only scalar multiplication (`XOnly`) and the Montgomery ladder computing it
+  (`Ladder`).
 * `EllipticCurve.TwistedEdwards.*`: the twisted Edwards model, its complete addition formula
   (`Formula`) and group (`Group`, `Lemmas`), the criterion for a curve to have a complete twisted
-  Edwards model (`HasModel`), and its even points (`Even`).
+  Edwards model (`HasModel`), its even points and 4-torsion (`Even`), and the projective,
+  extended and completed coordinate systems (`Coords`) with inversion-free formulas (`Formulas`).
 * `EllipticCurve.FunctionField.*`, `EllipticCurve.Weierstrass.*`: places of a function field and
   values of functions at them; the points of a Weierstrass curve are the rational places of its
   function field, and an isomorphism of function fields fixing the place at infinity is a change of
@@ -70,7 +79,9 @@ and their models.
   law from the identities of their formula (`Translation`, `GroupLaw`), as twisted Edwards does
   (`EdwardsIdentities`, `EdwardsGroupLaw`).
 
-The modules staged for Mathlib (`EllipticCurve.Mathlib.*`: the point map of a change of variables,
-the classification of Weierstrass curves by their invariants, the curves with given invariants) are
-imported privately here, so that no Weierstrass name reaches importers of this root through them.
+The modules staged for Mathlib on Weierstrass curves (`EllipticCurve.Mathlib.AlgebraicGeometry.*`:
+the point map of a change of variables, the classification of Weierstrass curves by their
+invariants, the curves with given invariants) are imported privately here, so that no Weierstrass
+name reaches importers of this root through them; the facts about squares
+(`EllipticCurve.Mathlib.Algebra.Group.Even`) are public.
 `EllipticCurve.Curve.Impl` (internal to model definitions) is not part of this root. -/
